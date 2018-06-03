@@ -110,9 +110,26 @@ export default {
             const rect = listener.el.getBoundingClientRect()
             return (rect.top < window.innerHeight && rect.bottom > 0) &&
             (rect.left < window.innerWidth && rect.right > 0)
-        }        
+        }       
+        
+        function isExist(el) {
+            let isExist = false
+            Listeners.forEach(listener => {
+                if(listener.src == el.src) isExist = true
+            })
+            
+            if(isExist) {
+                Vue.nextTick(()=>{
+                    loadImg()
+                })
+            }
 
-        function addListener(el, binding, vnode, oldVnode) {                                    
+            return isExist
+        }
+
+        function addListener(el, binding, vnode, oldVnode) {    
+            if(isExist(el)) return
+            
             const loadingImg = opt.loadingImg
             render(el, loadingImg, 'loading')
 
