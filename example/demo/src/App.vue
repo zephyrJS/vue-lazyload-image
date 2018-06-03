@@ -45,7 +45,7 @@ export default {
 }
 
 img {
-  background: red;
+  background: grey;
   width: 100%;
   min-height: 600px;
 }

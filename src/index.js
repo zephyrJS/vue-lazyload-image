@@ -8,13 +8,16 @@ Array.prototype.remove = function(item){
 export default {
     install(Vue, options = {}) {
         const IMG = 'data:img/jpg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEXs7Oxc9QatAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg=='
-        const EVENTS = ['wheel', 'scroll', 'touchmove']
-
-        const opt = {
-            hasBind: false
-        }
-
+        const EVENTS = ['wheel', 'scroll', 'touchmove']        
         const Listeners = []
+        const opt = {
+            preload: options.preload || 1.2,            
+            errImg: options.errImg || IMG,
+            loadingImg: options.loadingImg || IMG,
+            try: options.try || 0,
+            events: options.events || EVENTS,
+            hasBind: false,
+        }
 
         function throttle(action, delay) {
             let timeout = null
@@ -50,11 +53,11 @@ export default {
 
         function events(el, bindType) {
             if(bindType) {
-                EVENTS.forEach((evt)=>{
+                opt.events.forEach((evt)=>{
                     Tools.on(el, evt, loadImg)
                 })
             }else {
-                EVENTS.forEach((evt)=>{
+                opt.events.forEach((evt)=>{
                     Tools.off(el, evt, loadImg)
                 })
             }
@@ -68,48 +71,63 @@ export default {
 
         function checkImg(listener) {
             if(isInView(listener)) {
-                console.log('load')
-                listener.el.src = listener.src
-                Listeners.remove(listener)
-                console.log(Listeners.length)
+                load(listener)                
             }
+        }
+
+        function load(listener) {     
+            if(listener.try > opt.try) return false
+            listener.try++      
+            const el = listener.el 
+            const src = listener.src 
+            asyncLoadImg(listener, ()=>{
+                render(el, src, 'loaded')
+                Listeners.remove(listener)
+            }, (err)=>{
+                render(el, opt.errImg, 'error')
+            })
+        }
+
+        function asyncLoadImg(item, resolve, reject) {
+            const img = new Image()
+            img.src = item.src
+            img.onload = function() {
+                resolve({
+                    src: img.src
+                })
+            }
+            img.onerror = function(err) {
+                reject(err)
+            }
+        }
+
+        function render(el, src, status) {
+            el.src = src
+            el.setAttribute('status', status)            
         }
 
         function isInView(listener) {
             const rect = listener.el.getBoundingClientRect()
             return (rect.top < window.innerHeight && rect.bottom > 0) &&
             (rect.left < window.innerWidth && rect.right > 0)
-        }
+        }        
 
-        function addListener(el, binding, vnode, oldVnode) {
-            let hasBind = opt.hasBind
+        function addListener(el, binding, vnode, oldVnode) {                                    
+            const loadingImg = opt.loadingImg
+            render(el, loadingImg, 'loading')
 
             Vue.nextTick(() => {
                 Listeners.push({
                     src: binding.value,
+                    try: 0,
                     el: el,
                 })
                 loadImg()
-                if(Listeners.length > 0 && !hasBind) {
+                if(Listeners.length > 0 && !opt.hasBind) {
                     console.log('first listen scroll')
-                    hasBind = true
+                    opt.hasBind = true
                     events(window, true)
                 }
-                // EVENTS.forEach((event) => {
-                //     throttle(
-                //         el.addEventListener(event, (evt) => {
-                //             const rect = evt.target.getBoundingClientRect()
-                //             if (
-                //                 (rect.top < window.innerHeight && rect.bottom > 0) &&
-                //                 (rect.left < window.innerWidth && rect.right > 0)
-                //             ) {
-                //                 console.log(el)
-                //                 console.log('inView')
-                //                 el.src = binding.value
-                //             }
-                //         }, false)
-                //     , 300)
-                // })
             })
         }
 
