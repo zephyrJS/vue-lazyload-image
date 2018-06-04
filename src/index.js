@@ -148,9 +148,17 @@ export default {
             })
         }
 
+        function unbind(el, binding, vnode, oldVnode) {
+            if(!el) return
+            if(!opt.hasBind) {
+                opt.hasBind = false
+                events(window, false)
+            }
+        }
+
         Vue.directive('lazy', {
             bind: addListener,
-            unbind: () => {}
+            unbind: unbind
         })
     }
 }
